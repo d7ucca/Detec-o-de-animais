@@ -1,99 +1,235 @@
 # -*- coding: utf-8 -*-
+
 import tkinter as tk
 from PIL import Image, ImageTk
 import cv2
 
+
 class App:
+
     def __init__(self, root):
+
         self.root = root
-        self.root.title("Sistema de Detecção de Animais 🐾")
-        self.root.geometry("900x700")
-        self.root.configure(bg="#1e1e1e")
+        self.root.title("Sistema Inteligente de IA - Visão Computacional")
+        self.root.geometry("1800x950")
+        self.root.configure(bg="#0f0f0f")
 
-        self.contagem = {}
-        self.recortes = []
+        # =========================
+        # SCROLL PRINCIPAL
+        # =========================
 
-        self.titulo = tk.Label(
-            root,
-            text="🐾 Detecção Inteligente de Animais",
-            font=("Arial", 18, "bold"),
+        self.canvas = tk.Canvas(root, bg="#0f0f0f", highlightthickness=0)
+        self.scrollbar = tk.Scrollbar(root, orient="vertical", command=self.canvas.yview)
+
+        self.frame = tk.Frame(self.canvas, bg="#0f0f0f")
+
+        self.frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+
+        self.canvas.create_window((0,0), window=self.frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+
+        # =========================
+        # TÍTULO
+        # =========================
+
+        tk.Label(
+            self.frame,
+            text="🐾 Sistema IA - Monitoramento Inteligente",
+            font=("Arial", 22, "bold"),
+            fg="#00ffcc",
+            bg="#0f0f0f"
+        ).pack(pady=10)
+
+        # =========================
+        # ÁREA PRINCIPAL
+        # =========================
+
+        self.main = tk.Frame(self.frame, bg="#0f0f0f")
+        self.main.pack()
+
+        self.left = tk.Frame(self.main, bg="#0f0f0f")
+        self.left.grid(row=0, column=0)
+
+        self.right = tk.Frame(self.main, bg="#1a1a1a", width=450)
+        self.right.grid(row=0, column=1, sticky="ns")
+
+        # =========================
+        # IMAGENS
+        # =========================
+
+        self.labels = {}
+
+        nomes = [
+            "Original",
+            "YOLO",
+            "Gray",
+            "Blur",
+            "Edges",
+            "Sharpen",
+            "HSV Mask",
+            "Threshold"
+        ]
+
+        r = 0
+        c = 0
+
+        for n in nomes:
+
+            box = tk.Frame(self.left, bg="#1e1e1e", bd=2)
+            box.grid(row=r, column=c, padx=8, pady=8)
+
+            tk.Label(box, text=n, fg="#00ffcc", bg="#1e1e1e").pack()
+
+            lbl = tk.Label(box, bg="#1e1e1e")
+            lbl.pack()
+
+            self.labels[n] = lbl
+
+            c += 1
+            if c > 1:
+                c = 0
+                r += 1
+
+        # =========================
+        # DASHBOARD
+        # =========================
+
+        tk.Label(
+            self.right,
+            text="📊 Dashboard IA",
+            fg="#00ffcc",
+            bg="#1a1a1a",
+            font=("Arial", 16, "bold")
+        ).pack(pady=10)
+
+        self.info = tk.Text(
+            self.right,
+            width=45,
+            height=40,
+            bg="#121212",
             fg="white",
-            bg="#1e1e1e"
+            font=("Consolas", 11)
         )
-        self.titulo.pack(pady=10)
 
-        self.label = tk.Label(root, bg="#1e1e1e")
-        self.label.pack(pady=10)
+        self.info.pack()
 
-        self.botao = tk.Button(
-            root,
-            text="Ver animais detectados",
-            command=self.abrir_popup,
-            bg="#ff00aa",
-            fg="white",
-            font=("Arial", 12, "bold")
-        )
-        self.botao.pack(pady=10)
+        # botão animais
+        tk.Label(
+            self.right,
+            text="🔍 Animais Detectados",
+            fg="#00ffcc",
+            bg="#1a1a1a"
+        ).pack(pady=5)
 
-    def atualizar(self, frame, contagem, recortes):
-        self.contagem = contagem
-        self.recortes = recortes
+        self.animals_frame = tk.Frame(self.right, bg="#1a1a1a")
+        self.animals_frame.pack()
 
-        img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # =========================
+    # CONVERTER IMAGEM
+    # =========================
+
+    def converter(self, img):
+
+        if len(img.shape) == 2:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        else:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
         img = Image.fromarray(img)
-        img = img.resize((800, 500))
+        img = img.resize((350, 200))
 
-        img = ImageTk.PhotoImage(image=img)
+        return ImageTk.PhotoImage(img)
 
-        self.label.imgtk = img
-        self.label.configure(image=img)
 
-    def abrir_popup(self):
-        descricao = {
-            "dog": "Cachorro",
-            "cat": "Gato",
-            "bird": "Pássaro",
-            "horse": "Cavalo",
-            "cow": "Vaca",
-            "sheep": "Ovelha"
+    # =========================
+    # ZOOM POPUP
+    # =========================
+
+    def zoom(self, img, nome):
+
+        pop = tk.Toplevel(self.root)
+        pop.title(nome)
+        pop.geometry("500x500")
+        pop.configure(bg="#0f0f0f")
+
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img)
+        img = img.resize((450, 450))
+
+        imgtk = ImageTk.PhotoImage(img)
+
+        tk.Label(pop, image=imgtk, bg="#0f0f0f").pack()
+        pop.image = imgtk
+
+
+    # =========================
+    # UPDATE
+    # =========================
+
+    def atualizar(
+        self,
+        original,
+        yolo,
+        gray,
+        blur,
+        edges,
+        sharpen,
+        mask,
+        thresh,
+        contagem,
+        iluminacao,
+        objetos,
+        recortes
+    ):
+
+        imgs = {
+            "Original": original,
+            "YOLO": yolo,
+            "Gray": gray,
+            "Blur": blur,
+            "Edges": edges,
+            "Sharpen": sharpen,
+            "HSV Mask": mask,
+            "Threshold": thresh
         }
 
-        if not self.recortes:
-            popup = tk.Toplevel(self.root)
-            popup.title("Resultado")
-            popup.geometry("250x150")
-            popup.configure(bg="#1e1e1e")
+        for k, v in imgs.items():
+            img = self.converter(v)
+            self.labels[k].imgtk = img
+            self.labels[k].configure(image=img)
 
-            tk.Label(
-                popup,
-                text="Nenhum animal detectado",
-                fg="#ff00aa",
-                bg="#1e1e1e"
-            ).pack(pady=20)
+        # limpar botões
+        for w in self.animals_frame.winfo_children():
+            w.destroy()
 
-        else:
-            for nome, corte in self.recortes:
-                popup = tk.Toplevel(self.root)
-                popup.title("Animal detectado")
-                popup.geometry("300x320")
-                popup.configure(bg="#1e1e1e")
+        # botoes animais
+        for nome, img in recortes:
 
-                nome_pt = descricao.get(nome, nome)
+            tk.Button(
+                self.animals_frame,
+                text=f"{nome}",
+                bg="#00ffcc",
+                command=lambda i=img, n=nome: self.zoom(i, n)
+            ).pack(pady=2)
 
-                img = cv2.cvtColor(corte, cv2.COLOR_BGR2RGB)
-                img = Image.fromarray(img)
-                img = img.resize((200, 200))
+        # dashboard
+        self.info.delete(1.0, tk.END)
 
-                img_tk = ImageTk.PhotoImage(img)
+        self.info.insert(tk.END, "=== IA RESULTADOS ===\n\n")
+        self.info.insert(tk.END, f"{iluminacao}\n\n")
+        self.info.insert(tk.END, f"{objetos}\n\n")
 
-                label_img = tk.Label(popup, image=img_tk, bg="#1e1e1e")
-                label_img.image = img_tk
-                label_img.pack(pady=10)
+        total = sum(contagem.values())
 
-                tk.Label(
-                    popup,
-                    text=nome_pt,
-                    font=("Arial", 12, "bold"),
-                    fg="#ff00aa",
-                    bg="#1e1e1e"
-                ).pack()
+        for k, v in contagem.items():
+            self.info.insert(tk.END, f"{k}: {v}\n")
+
+        self.info.insert(tk.END, f"\nTotal: {total}\n")
+
+        self.info.insert(tk.END, "\n✔ Pipeline completo de visão computacional + YOLO")
